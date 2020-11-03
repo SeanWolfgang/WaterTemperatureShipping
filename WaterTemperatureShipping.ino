@@ -1,13 +1,17 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <SPI.h>
 #include <Wire.h>
 #include <ds3231.h>
+#include "SdFat.h"
+SdFat SD;
 
 #define ONE_WIRE_BUS_1 2
 #define ONE_WIRE_BUS_2 3
 #define ONE_WIRE_BUS_3 4
 #define ONE_WIRE_BUS_4 5
 #define ONE_WIRE_BUS_5 6
+#define SD_PIN 10
 
 OneWire oneWire_temp1(ONE_WIRE_BUS_1);
 OneWire oneWire_temp2(ONE_WIRE_BUS_2);
@@ -22,6 +26,7 @@ DallasTemperature tempSensor_4(&oneWire_temp4);
 DallasTemperature tempSensor_5(&oneWire_temp5);
 
 struct ts t;  // For DS3231
+String SDFileName;
 
 /* At 76.2 air temperature, following errors were noted
    Sensor 1: +1.70
@@ -41,8 +46,16 @@ void setup() {
   DS3231_init(DS3231_CONTROL_INTCN);
   DS3231_get(&t);
 
+  // Initialize SD card
+  initializeSD(SD_PIN);
+  assignFileName();
+  Serial.print("This is the file name\t");
+  Serial.println(SDFileName);
+  
   // Initialize temperature sensors
   beginTemperatureSensors();
+
+  testFileName();
 }
 
 void loop() {
@@ -50,6 +63,7 @@ void loop() {
   requestSensorTemperatures();
   printDateTime();
   printSensorTemperatures();
+  logSensorTemperatures();
   Serial.print("\n");
 }
 
@@ -94,17 +108,69 @@ void printSensorTemperatures() {
 
 
 void printDateTime() {
+  char timeStampBuff[50];
   DS3231_get(&t);
-  Serial.print(t.mday);
-  Serial.print("/");
-  Serial.print(t.mon);
-  Serial.print("/");
-  Serial.print(t.year);
-  Serial.print(" ");
-  Serial.print(t.hour);
-  Serial.print(":");
-  Serial.print(t.min);
-  Serial.print(".");
-  Serial.print(t.sec);
-  Serial.print("\n");
+  
+  sprintf(timeStampBuff, "%02d/%02d/%02d %02d:%02d.%02d", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
+  
+  Serial.println(timeStampBuff);
+}
+
+void initializeSD(int pinSD) {
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(pinSD)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+}
+
+
+void logSensorTemperatures() {
+  String timeStamp;
+  char timeStampBuff[50];
+  File logFile;
+  
+  DS3231_get(&t);
+  logFile = SD.open(SDFileName, FILE_WRITE);
+  
+  sprintf(timeStampBuff, "%02d/%02d/%02d %02d:%02d.%02d", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
+  timeStamp = timeStampBuff;
+
+  logFile.print(timeStamp);
+  logFile.print("\t");
+  
+  logFile.print(tempSensor_1.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+  
+  logFile.print(tempSensor_2.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_3.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_4.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_5.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\n");
+  
+  logFile.close();
+}
+
+void assignFileName() {
+  DS3231_get(&t);
+  char buff[50];
+  sprintf(buff, "%02d-%02d-%02d_%02d-%02d-%02d.txt", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
+  //Serial.print("\nPrinting here");
+  //Serial.print(buff);
+  SDFileName = buff;
+}
+
+void testFileName() {
+  File testLogFile;
+  testLogFile = SD.open(SDFileName, FILE_WRITE);
+  testLogFile.println("Checking one");
+  testLogFile.close();
 }
