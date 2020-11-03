@@ -1,5 +1,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Wire.h>
+#include <ds3231.h>
 
 #define ONE_WIRE_BUS_1 2
 #define ONE_WIRE_BUS_2 3
@@ -28,21 +30,26 @@ DallasTemperature tempSensor_5(&oneWire_temp5);
  */
 
 void setup() {
-  // put your setup code here, to run once:
+  // Begin serial monitor since code is still being tested with monitor
   Serial.begin(9600);
-  Serial.println("Dallas Temperature Control Library Demo - TwoPin_DS18B20");
 
+  // Initialize RTC module
+  DS3231_init(DS3231_CONTROL_INTCN);
+  
+  // Initialize temperature sensors
   beginTemperatureSensors();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  Serial.print("\n");
+  // Each loop, request and print sensor data
   requestSensorTemperatures();
   printSensorTemperatures();
+  Serial.print("\n");
 }
 
 void beginTemperatureSensors() {
+  // For the time, each sensor must be initialized by calling variables verbosely
+  // Consider implementations to begin sensor groups programatically to make code more easily adaptable
   tempSensor_1.begin();
   tempSensor_2.begin();
   tempSensor_3.begin();
@@ -51,6 +58,8 @@ void beginTemperatureSensors() {
 }
 
 void requestSensorTemperatures() {
+  // For the time, each sensor's output must be requested by calling variables verbosely
+  // Consider implementations to request sensor data programatically to make code more easily adaptable
   tempSensor_1.requestTemperatures();
   tempSensor_2.requestTemperatures();
   tempSensor_3.requestTemperatures();
@@ -59,6 +68,8 @@ void requestSensorTemperatures() {
 }
 
 void printSensorTemperatures() {
+  // Print each sensor's output in a human readable format
+  // Consider implementations to print sensor data programatically to make code more easily adaptable
   Serial.print("Sensor 1: ");
   Serial.println(tempSensor_1.getTempCByIndex(0) * 9/5 + 32);
 
