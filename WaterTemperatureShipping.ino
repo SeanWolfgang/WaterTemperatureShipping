@@ -21,21 +21,26 @@ DallasTemperature tempSensor_3(&oneWire_temp3);
 DallasTemperature tempSensor_4(&oneWire_temp4);
 DallasTemperature tempSensor_5(&oneWire_temp5);
 
+struct ts t;  // For DS3231
+
 /* At 76.2 air temperature, following errors were noted
- * Sensor 1: +1.70
- * Sensor 2: -0.66
- * Sensor 3: -0.33
- * Sensor 4: +1.36
- * Sensor 5: +0.24
- */
+   Sensor 1: +1.70
+   Sensor 2: -0.66
+   Sensor 3: -0.33
+   Sensor 4: +1.36
+   Sensor 5: +0.24
+*/
+
 
 void setup() {
   // Begin serial monitor since code is still being tested with monitor
   Serial.begin(9600);
 
   // Initialize RTC module
+  Wire.begin();
   DS3231_init(DS3231_CONTROL_INTCN);
-  
+  DS3231_get(&t);
+
   // Initialize temperature sensors
   beginTemperatureSensors();
 }
@@ -43,6 +48,7 @@ void setup() {
 void loop() {
   // Each loop, request and print sensor data
   requestSensorTemperatures();
+  printDateTime();
   printSensorTemperatures();
   Serial.print("\n");
 }
@@ -71,17 +77,34 @@ void printSensorTemperatures() {
   // Print each sensor's output in a human readable format
   // Consider implementations to print sensor data programatically to make code more easily adaptable
   Serial.print("Sensor 1: ");
-  Serial.println(tempSensor_1.getTempCByIndex(0) * 9/5 + 32);
+  Serial.println(tempSensor_1.getTempCByIndex(0) * 9 / 5 + 32);
 
   Serial.print("Sensor 2: ");
-  Serial.println(tempSensor_2.getTempCByIndex(0) * 9/5 + 32);
+  Serial.println(tempSensor_2.getTempCByIndex(0) * 9 / 5 + 32);
 
   Serial.print("Sensor 3: ");
-  Serial.println(tempSensor_3.getTempCByIndex(0) * 9/5 + 32);
+  Serial.println(tempSensor_3.getTempCByIndex(0) * 9 / 5 + 32);
 
   Serial.print("Sensor 4: ");
-  Serial.println(tempSensor_4.getTempCByIndex(0) * 9/5 + 32);
+  Serial.println(tempSensor_4.getTempCByIndex(0) * 9 / 5 + 32);
 
   Serial.print("Sensor 5: ");
-  Serial.println(tempSensor_5.getTempCByIndex(0) * 9/5 + 32);
+  Serial.println(tempSensor_5.getTempCByIndex(0) * 9 / 5 + 32);
+}
+
+
+void printDateTime() {
+  DS3231_get(&t);
+  Serial.print(t.mday);
+  Serial.print("/");
+  Serial.print(t.mon);
+  Serial.print("/");
+  Serial.print(t.year);
+  Serial.print(" ");
+  Serial.print(t.hour);
+  Serial.print(":");
+  Serial.print(t.min);
+  Serial.print(".");
+  Serial.print(t.sec);
+  Serial.print("\n");
 }
