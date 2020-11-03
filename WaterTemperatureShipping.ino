@@ -55,16 +55,36 @@ void setup() {
   // Initialize temperature sensors
   beginTemperatureSensors();
 
-  testFileName();
+  logHeader();
 }
 
 void loop() {
-  // Each loop, request and print sensor data
+  // Each loop, request and log sensor data with timestamps
   requestSensorTemperatures();
-  printDateTime();
-  printSensorTemperatures();
   logSensorTemperatures();
-  Serial.print("\n");
+}
+
+void initializeSD(int pinSD) {
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(pinSD)) {
+    Serial.println("initialization failed!");
+    delay(5000);
+    initializeSD(SD_PIN);
+  }
+  Serial.println("initialization done.");
+}
+
+void assignFileName() {
+  // Get time from DS3231
+  DS3231_get(&t);
+
+  // Print formatted time to character buffer
+  char buff[50];
+  sprintf(buff, "%02d-%02d-%02d_%02d-%02d-%02d.txt", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
+
+  // Set global SD file name to the formatted timestamp
+  SDFileName = buff;
 }
 
 void beginTemperatureSensors() {
@@ -87,7 +107,76 @@ void requestSensorTemperatures() {
   tempSensor_5.requestTemperatures();
 }
 
-void printSensorTemperatures() {
+void logSensorTemperatures() {
+  // Defining local variables for formatted strings and log file
+  char timeStampBuff[50];
+  File logFile;
+
+  // Get time from DS3231
+  DS3231_get(&t);
+
+  // Open log file with formatted file name assigned in assignFileName
+  logFile = SD.open(SDFileName, FILE_WRITE);
+
+  // Print formatted time to character buffer
+  sprintf(timeStampBuff, "%02d/%02d/%02d %02d:%02d.%02d", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
+
+  // Log time stamps and temperature readings
+  logFile.print(timeStampBuff);
+  logFile.print("\t");
+
+  // Convert the temperature readings from Celsius to Fahrenheit
+  logFile.print(tempSensor_1.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+  
+  logFile.print(tempSensor_2.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_3.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_4.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\t");
+
+  logFile.print(tempSensor_5.getTempCByIndex(0) * 9 / 5 + 32);
+  logFile.print("\n");
+
+  // Close file once everything has been written
+  logFile.close();
+}
+
+void testFileName() {
+  // Test the log file with formatted file name assigned in assignFileName is naming, opening, writing, and closing correctly
+  File testLogFile;
+  testLogFile = SD.open(SDFileName, FILE_WRITE);
+  testLogFile.println("Checking one");
+  testLogFile.close();
+}
+
+void logHeader() {
+  // Using local file variable to log to
+  File logFile;
+
+  // Open log file with formatted file name assigned in assignFileName
+  logFile = SD.open(SDFileName, FILE_WRITE);
+
+  // Log headers for each data entry
+  logFile.print("Timestamp");
+  logFile.print("\t");
+  logFile.print("Sensor1");
+  logFile.print("\t");
+  logFile.print("Sensor2");
+  logFile.print("\t");
+  logFile.print("Sensor3");
+  logFile.print("\t");
+  logFile.print("Sensor4");
+  logFile.print("\t");
+  logFile.print("Sensor5");
+  logFile.print("\n");
+  logFile.close();
+}
+
+void serialPrintSensorTemperatures() {
   // Print each sensor's output in a human readable format
   // Consider implementations to print sensor data programatically to make code more easily adaptable
   Serial.print("Sensor 1: ");
@@ -107,70 +196,12 @@ void printSensorTemperatures() {
 }
 
 
-void printDateTime() {
+void serialPrintDateTime() {
+  // Get, format, and print timestamp to serial monitor
   char timeStampBuff[50];
   DS3231_get(&t);
   
   sprintf(timeStampBuff, "%02d/%02d/%02d %02d:%02d.%02d", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
   
   Serial.println(timeStampBuff);
-}
-
-void initializeSD(int pinSD) {
-  Serial.print("Initializing SD card...");
-
-  if (!SD.begin(pinSD)) {
-    Serial.println("initialization failed!");
-    while (1);
-  }
-  Serial.println("initialization done.");
-}
-
-
-void logSensorTemperatures() {
-  String timeStamp;
-  char timeStampBuff[50];
-  File logFile;
-  
-  DS3231_get(&t);
-  logFile = SD.open(SDFileName, FILE_WRITE);
-  
-  sprintf(timeStampBuff, "%02d/%02d/%02d %02d:%02d.%02d", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
-  timeStamp = timeStampBuff;
-
-  logFile.print(timeStamp);
-  logFile.print("\t");
-  
-  logFile.print(tempSensor_1.getTempCByIndex(0) * 9 / 5 + 32);
-  logFile.print("\t");
-  
-  logFile.print(tempSensor_2.getTempCByIndex(0) * 9 / 5 + 32);
-  logFile.print("\t");
-
-  logFile.print(tempSensor_3.getTempCByIndex(0) * 9 / 5 + 32);
-  logFile.print("\t");
-
-  logFile.print(tempSensor_4.getTempCByIndex(0) * 9 / 5 + 32);
-  logFile.print("\t");
-
-  logFile.print(tempSensor_5.getTempCByIndex(0) * 9 / 5 + 32);
-  logFile.print("\n");
-  
-  logFile.close();
-}
-
-void assignFileName() {
-  DS3231_get(&t);
-  char buff[50];
-  sprintf(buff, "%02d-%02d-%02d_%02d-%02d-%02d.txt", t.mday, t.mon, t.year, t.hour, t.min, t.sec);
-  //Serial.print("\nPrinting here");
-  //Serial.print(buff);
-  SDFileName = buff;
-}
-
-void testFileName() {
-  File testLogFile;
-  testLogFile = SD.open(SDFileName, FILE_WRITE);
-  testLogFile.println("Checking one");
-  testLogFile.close();
 }
